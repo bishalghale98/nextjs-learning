@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User";
 import bcrypt from "bcryptjs";
@@ -9,56 +10,41 @@ export async function POST(req: Request) {
   try {
     const { username, email, password } = await req.json();
 
-    const existingUserVerifiesByUsername = await UserModel.findOne({
-      username,
-      isVerified: true,
-    });
-
-    if (existingUserVerifiesByUsername) {
-      return Response.json(
-        {
-          success: false,
-          message: "Username is already taken",
-        },
-        {
-          status: 400,
-        }
+    if (!username || !email || !password) {
+      return NextResponse.json(
+        { success: false, message: "All fields are required" },
+        { status: 400 }
       );
     }
 
-    const existingUserByEmail = await UserModel.findOne({
-      email,
-    });
+    const existingUsername = await UserModel.findOne({ username });
+    if (existingUsername) {
+      return NextResponse.json(
+        { success: false, message: "Username is already taken" },
+        { status: 400 }
+      );
+    }
 
-    const verifyCode = Math.floor(100000 + Math.random() * 90000).toString();
+    const existingUser = await UserModel.findOne({ email });
+    const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const expiryDate = new Date(Date.now() + 3600000); // 1 hour
 
-    if (existingUserByEmail) {
-      if (existingUserByEmail.isVerified) {
-        return Response.json(
-          {
-            success: false,
-            message: "User already exist with the email address",
-          },
-          {
-            status: 400,
-          }
+    if (existingUser) {
+      if (existingUser.isVerified) {
+        return NextResponse.json(
+          { success: false, message: "User already exists" },
+          { status: 400 }
         );
-      } else {
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        existingUserByEmail.password = hashedPassword;
-        existingUserByEmail.verifyCode = verifyCode;
-        existingUserByEmail.verifyCodeExpiry = new Date(Date.now() + 3600000);
-
-        await existingUserByEmail.save();
       }
+
+      existingUser.username = username;
+      existingUser.password = hashedPassword;
+      existingUser.verifyCode = verifyCode;
+      existingUser.verifyCodeExpiry = expiryDate;
+      await existingUser.save();
     } else {
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const expiryDate = new Date();
-      expiryDate.setHours(expiryDate.getHours() + 1);
-
-      const newUser = new UserModel({
+      await UserModel.create({
         username,
         email,
         password: hashedPassword,
@@ -68,45 +54,31 @@ export async function POST(req: Request) {
         isAcceptingMessage: true,
         messages: [],
       });
-
-      await newUser.save();
     }
 
-    // send verification email
     const emailResponse = await sendVerificationEmail(
       email,
       username,
       verifyCode
     );
-
     if (!emailResponse.success) {
-      return Response.json(
-        {
-          success: false,
-          message: emailResponse.message,
-        },
-        {
-          status: 500,
-        }
+      return NextResponse.json(
+        { success: false, message: emailResponse.message },
+        { status: 500 }
       );
     }
 
-    return Response.json(
+    return NextResponse.json(
       {
         success: true,
-        message: "User Registered successfully. Please verify your email",
+        message: "User registered successfully. Please verify your email.",
       },
-      {
-        status: 201,
-      }
+      { status: 201 }
     );
   } catch (error) {
-    console.error("Error registering USer", error);
-    return Response.json(
-      {
-        success: false,
-        message: "Error registering user",
-      },
+    console.error("Error during user registration:", error);
+    return NextResponse.json(
+      { success: false, message: "Internal Server Error" },
       { status: 500 }
     );
   }
