@@ -17,8 +17,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingUsername = await UserModel.findOne({ username });
-    if (existingUsername) {
+    // ✅ Check for verified username (cannot reuse)
+    const existingVerifiedUsername = await UserModel.findOne({
+      username,
+      isVerified: true,
+    });
+    if (existingVerifiedUsername) {
       return NextResponse.json(
         { success: false, message: "Username is already taken" },
         { status: 400 }
@@ -26,24 +30,33 @@ export async function POST(req: Request) {
     }
 
     const existingUser = await UserModel.findOne({ email });
+    const existingUnverifiedUsername = await UserModel.findOne({
+      username,
+      isVerified: false,
+    });
+
     const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedPassword = await bcrypt.hash(password, 10);
     const expiryDate = new Date(Date.now() + 3600000); // 1 hour
 
-    if (existingUser) {
-      if (existingUser.isVerified) {
-        return NextResponse.json(
-          { success: false, message: "User already exists" },
-          { status: 400 }
-        );
-      }
-
+    // ✅ If email exists but not verified → update
+    if (existingUser && !existingUser.isVerified) {
       existingUser.username = username;
       existingUser.password = hashedPassword;
       existingUser.verifyCode = verifyCode;
       existingUser.verifyCodeExpiry = expiryDate;
       await existingUser.save();
-    } else {
+    }
+    // ✅ If username exists but not verified → update same user
+    else if (existingUnverifiedUsername) {
+      existingUnverifiedUsername.email = email;
+      existingUnverifiedUsername.password = hashedPassword;
+      existingUnverifiedUsername.verifyCode = verifyCode;
+      existingUnverifiedUsername.verifyCodeExpiry = expiryDate;
+      await existingUnverifiedUsername.save();
+    }
+    // ✅ Otherwise → create new user
+    else {
       await UserModel.create({
         username,
         email,
@@ -61,6 +74,7 @@ export async function POST(req: Request) {
       username,
       verifyCode
     );
+
     if (!emailResponse.success) {
       return NextResponse.json(
         { success: false, message: emailResponse.message },

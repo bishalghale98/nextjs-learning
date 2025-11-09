@@ -1,6 +1,6 @@
 import dbConnect from "@/lib/dbConnect";
-import { success, z } from "zod";
 import UserModel from "@/model/User";
+import { z } from "zod";
 import { usernameValidation } from "@/schemas/signUpSchema";
 
 const UsernameQuerySchema = z.object({
@@ -16,8 +16,7 @@ export async function GET(req: Request) {
       username: searchParams.get("username"),
     };
 
-    // validate with zod
-
+    // ✅ Validate with Zod
     const result = UsernameQuerySchema.safeParse(queryParam);
 
     if (!result.success) {
@@ -25,15 +24,15 @@ export async function GET(req: Request) {
       return Response.json(
         {
           success: false,
-          message: usernameErrors.toLocaleString(),
+          message: usernameErrors.join(", ") || "Invalid username format",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
     const { username } = result.data;
+
+    // ✅ Only block verified usernames
     const existingVerifiedUser = await UserModel.findOne({
       username,
       isVerified: true,
@@ -45,31 +44,27 @@ export async function GET(req: Request) {
           success: false,
           message: "Username is already taken",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
+    // ✅ If not found or unverified, it’s available
     return Response.json(
       {
         success: true,
         message: "Username is available",
       },
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
+
   } catch (error) {
-    console.error("Error checking username", error);
+    console.error("Error checking username:", error);
     return Response.json(
       {
         success: false,
         message: "Error checking username",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

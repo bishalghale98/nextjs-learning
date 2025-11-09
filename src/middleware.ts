@@ -6,25 +6,22 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request });
   const { pathname } = request.nextUrl;
 
-  // ✅ If user is logged in — restrict access to auth pages
+  // ✅ Logged-in users should not access auth pages
   if (
     token &&
-    (pathname.startsWith("/sign-up") ||
-      pathname.startsWith("/verify") ||
-      pathname === "/")
+    (pathname.startsWith("/sign-in") ||
+     pathname.startsWith("/sign-up") ||
+     pathname.startsWith("/verify"))
   ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // ✅ If user is NOT logged in and tries to access protected routes
-  if (
-    !token &&
-    (pathname.startsWith("/dashboard") || pathname.startsWith("/verify"))
-  ) {
-    return NextResponse.redirect(new URL("/home", request.url));
+  // ✅ Not logged-in users should not access protected routes
+  if (!token && pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // ✅ Otherwise, allow the request to continue
+  // ✅ Otherwise continue
   return NextResponse.next();
 }
 

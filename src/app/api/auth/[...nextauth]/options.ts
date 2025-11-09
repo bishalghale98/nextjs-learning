@@ -10,7 +10,7 @@ export const authOptions: NextAuthOptions = {
       id: "credentials",
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
+        identifier: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials: any): Promise<any> {
@@ -25,11 +25,10 @@ export const authOptions: NextAuthOptions = {
                 username: credentials.identifier,
               },
             ],
-          });
+          }).select("+password");
 
-          if (!user) {
-            throw new Error("No user found with this email");
-          }
+          if (!user)
+            throw new Error("No user found with this email or username");
 
           if (!user.isVerified) {
             throw new Error("Please verify your account before login");
@@ -46,7 +45,7 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Incorrect Password");
           }
         } catch (error: any) {
-          throw new Error(error);
+          throw new Error(error.message || "Login failed");
         }
       },
     }),
@@ -63,12 +62,11 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, user, token }) {
-      if (token) {
-        session.user._id = token._id;
-        session.user.isVerified = token.isVerified;
-        session.user.isAcceptingMessages = token.isAcceptingMessages;
-        session.user.username = token.username;
-      }
+      session.user._id = token._id;
+      session.user.isVerified = token.isVerified;
+      session.user.isAcceptingMessages = token.isAcceptingMessages;
+      session.user.username = token.username;
+
       return session;
     },
   },
