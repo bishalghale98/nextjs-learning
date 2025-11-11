@@ -32,34 +32,58 @@ export async function GET(req: Request) {
     );
   }
 
-  const userId = new mongoose.Types.ObjectId(user._id);
-
   try {
-    // ✅ Aggregate messages sorted by creation date
-    const userMessages = await UserModel.aggregate([
-      { $match: { _id: userId } }, // ✅ FIXED field name
-      { $unwind: "$messages" },
-      { $sort: { "messages.createdAt": -1 } },
-      { $group: { _id: "$_id", messages: { $push: "$messages" } } },
-    ]);
-
-    if (!userMessages || userMessages.length === 0) {
+    // ✅ Convert string _id to ObjectId
+    let userId;
+    try {
+      userId = new mongoose.Types.ObjectId(user._id);
+    } catch (error) {
       return Response.json(
         {
           success: false,
-          message: "User not found or no messages available.",
+          message: "Invalid user ID format.",
         },
-        { status: 404 } // ✅ correct status
+        { status: 400 }
       );
     }
+
+    // ✅ First, check if user exists and get messages directly
+    const userData = await UserModel.findById(userId).select("messages");
+    
+    if (!userData) {
+      return Response.json(
+        {
+          success: false,
+          message: "User not found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    if (!userData.messages || userData.messages.length === 0) {
+      return Response.json(
+        {
+          success: false,
+          message: "No messages available.",
+          messages: [] // Return empty array instead of 404
+        },
+        { status: 200 } // Use 200 since user exists, just no messages
+      );
+    }
+
+    // ✅ Sort messages by createdAt date (newest first)
+    const sortedMessages = userData.messages.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
     return Response.json(
       {
         success: true,
-        messages: userMessages[0].messages,
+        messages: sortedMessages,
       },
       { status: 200 }
     );
+
   } catch (error) {
     console.error("Error fetching user messages:", error);
     return Response.json(
