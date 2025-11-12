@@ -1,0 +1,18 @@
+
+    [
+            {
+              "title": "100% Anonymous",
+              "description": "Your identity is completely protected",
+              "icon": "🔒"
+            },
+            {
+              "title": "Real-time Feedback",
+              "description": "Instant sharing and viewing",
+              "icon": "⚡"
+            },
+            {
+              "title": "Secure Platform",
+              "description": "Enterprise-grade security",
+              "icon": "🛡️"
+            }
+          ]

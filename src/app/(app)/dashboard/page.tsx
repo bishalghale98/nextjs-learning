@@ -117,7 +117,7 @@ function UserDashboard() {
                     url: profileUrl,
                 });
             } catch (error) {
-                // User cancelled the share
+               
             }
         } else {
             copyToClipboard();
