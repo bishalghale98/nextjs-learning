@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import * as z from "zod"
 
 export default function SignInPage() {
-  const { data: session, status } = useSession()
+  const { data: session } = useSession()
   const router = useRouter()
 
 
@@ -49,9 +49,62 @@ export default function SignInPage() {
 
   if (session) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <p className="text-lg mb-4">Signed in as <strong>{session.user?.email}</strong></p>
-        <Button onClick={() => signOut()}>Sign out</Button>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        {/* Card with Material Design elevation and HIG clarity */}
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full mx-auto
+                      border border-gray-100/50 backdrop-blur-sm
+                      transition-all duration-300 hover:shadow-xl">
+
+          {/* Profile header with clear hierarchy */}
+          <div className="text-center mb-8">
+            {/* Avatar with subtle depth */}
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 
+                          rounded-full mx-auto mb-4 shadow-md flex items-center justify-center">
+              <span className="text-white text-xl font-semibold">
+                {session.user?.email?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+
+            {/* Clear, readable text with proper hierarchy */}
+            <p className="text-gray-600 text-base mb-2">Signed in as</p>
+            <p className="text-gray-900 text-lg font-semibold break-words">
+              {session.user?.email}
+            </p>
+          </div>
+
+          {/* Action buttons with clear affordance */}
+          <div className="space-y-4">
+            {/* Primary action with Material Design button */}
+            <button
+              onClick={() => signOut()}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white 
+                       py-3 px-4 rounded-xl font-medium shadow-md hover:shadow-lg
+                       transition-all duration-200 active:scale-95
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Sign Out
+            </button>
+
+            {/* Secondary action with HIG clarity */}
+            <Link
+              href={'/dashboard'}
+              className="w-full border border-gray-300 text-gray-700 
+                       py-3 px-4 rounded-xl font-medium text-center block
+                       transition-all duration-200 hover:bg-gray-50
+                       active:bg-gray-100 focus:outline-none focus:ring-2 
+                       focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Go to Dashboard
+            </Link>
+          </div>
+
+          {/* Subtle footer text */}
+          <div className="mt-6 text-center">
+            <p className="text-gray-400 text-sm">
+              Secure • Private • Encrypted
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
